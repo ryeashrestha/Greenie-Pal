@@ -24,9 +24,7 @@ It is an app built using Streamlit and powered by Google's Gemini API. It promot
 
 ---
 
-## 📦 Installation & Setup
-
-1. **Clone the repository:**
+## **Clone the repository:**
    ```bash
    git clone https://github.com/yourusername/Greenie-Pal.git
    cd Greenie-Pal
