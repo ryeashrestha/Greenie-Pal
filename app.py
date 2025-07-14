@@ -11,6 +11,27 @@ genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 # -------------------------------
+# Global Quiz Data
+# -------------------------------
+all_statements = {
+    "Plastic straws are the biggest ocean polluter.": "Myth",
+    "Electric cars have zero environmental impact.": "Myth",
+    "Climate change is only caused by natural cycles.": "Myth",
+    "All plastics are recyclable.": "Myth",
+    "Going vegan has no impact on the environment.": "Myth",
+    "Bamboo products are always sustainable.": "Myth",
+    "Deforestation increases carbon emissions.": "Truth",
+    "Meat production contributes to global warming.": "Truth",
+    "Using public transport reduces your carbon footprint.": "Truth",
+    "Solar and wind energy are renewable.": "Truth",
+    "Recycling helps conserve natural resources.": "Truth",
+    "Climate change is intensified by human activity.": "Truth",
+    "Organic food always has a lower carbon footprint.": "Myth",
+    "Fast fashion is one of the biggest polluters.": "Truth",
+    "Bottled water is safer than tap water.": "Myth"
+}
+
+# -------------------------------
 # Page Navigation via Session State
 # -------------------------------
 if "page" not in st.session_state:
@@ -62,21 +83,25 @@ def home():
             </style>
         """, unsafe_allow_html=True)
 
+        # Always define eco_tips
+        eco_tips = [
+            "Say no to disposable plastic items",
+            "Use LED or energy-saving lights",
+            "Collect rainwater for plants",
+            "Choose buses, trains, or shared rides",
+            "Eat less meat—start with one day a week",
+            "Bring a refillable water bottle everywhere",
+            "Take shorter showers to save water and energy",
+            "Turn kitchen scraps into compost",
+            "Support local eco-friendly businesses.",
+            "Grow local plants in your backyard",
+            "Buy second-hand or thrift items to reduce waste",
+        ]
+
+        # Initialize tip only once
         if "daily_tip" not in st.session_state:
-            eco_tips = [
-                "Say no to disposable plastic items",
-                "Use LED or energy-saving lights",
-                "Collect rainwater for plants",
-                "Choose buses, trains, or shared rides",
-                "Eat less meat—start with one day a week",
-                "Bring a refillable water bottle everywhere",
-                "Take shorter showers to save water and energy",
-                "Turn kitchen scraps into compost",
-                "Support local eco-friendly businesses.",
-                "Grow local plants in your backyard",
-                "Buy second-hand or thrift items to reduce waste",
-            ]
             st.session_state.daily_tip = random.choice(eco_tips)
+
         st.container(height=100).info(st.session_state.daily_tip)
 
         if st.button("🌿 Get New Tip", use_container_width=True):
@@ -127,90 +152,55 @@ def home():
         st.write("**Greenie Pal**: Hi! I'm here to help you with environmental questions. Ask me anything about sustainability!")
 
 # -------------------------------
-# Myth or Truth Quiz Page
+# Quiz Page
 # -------------------------------
 def quiz():
-    st.title("🧠 Myth or Truth Quiz")
-    st.markdown("Drag each sustainability statement into the correct box!")
+    st.title("Myth or Truth Quiz")
+    st.markdown("Test your sustainability knowledge!")
 
-    myths = [
-        "Plastic straws are the biggest ocean polluter.",
-        "Electric cars have zero environmental impact.",
-        "Climate change is only caused by natural cycles.",
-        "All plastics are recyclable.",
-        "Going vegan has no impact on the environment.",
-        "Bamboo products are always sustainable."
-    ]
+    if st.session_state.get("quiz_started"):
+        st.markdown("### Choose 'Myth' or 'Truth' for each statement:")
 
-    truths = [
-        "Deforestation increases carbon emissions.",
-        "Meat production contributes to global warming.",
-        "Using public transport reduces your carbon footprint.",
-        "Solar and wind energy are renewable.",
-        "Recycling helps conserve natural resources.",
-        "Climate change is intensified by human activity."
-    ]
+        for idx, (statement, _) in enumerate(st.session_state.questions):
+            selected = st.radio(
+                f"{idx+1}. {statement}",
+                ["Myth", "Truth"],
+                key=f"q{idx}"
+            )
+            st.session_state.answers[f"q{idx}"] = selected
 
-    if "quiz_started" not in st.session_state or not st.session_state.quiz_started:
-        if st.button("Start Quiz"):
-            st.session_state.quiz_started = True
-            st.session_state.pool = myths + truths
-            random.shuffle(st.session_state.pool)
-            st.session_state.myth = []
-            st.session_state.truth = []
+        if st.button("Submit Quiz"):
+            correct = 0
+            for idx, (_, correct_answer) in enumerate(st.session_state.questions):
+                if st.session_state.answers.get(f"q{idx}") == correct_answer:
+                    correct += 1
 
-    if st.session_state.get("quiz_started", False):
-        myth_items, truth_items, pool_items = sort_items(
-            {
-                "Myth ❌": st.session_state.myth,
-                "Truth ✅": st.session_state.truth,
-                "Pool 🔄": st.session_state.pool,
-            },
-            multi_containers=True,
-            direction="vertical",
-            key="multi-sortable",
-        )
+            st.success(f"You got {correct} out of 15 correct!")
 
-        # Update session state lists
-        st.session_state.myth = myth_items
-        st.session_state.truth = truth_items
-        st.session_state.pool = pool_items
+            with st.expander("See Correct Answers"):
+                for idx, (statement, correct_answer) in enumerate(st.session_state.questions):
+                    user_ans = st.session_state.answers.get(f"q{idx}")
+                    correct_status = "✅" if user_ans == correct_answer else "❌"
+                    st.markdown(f"{correct_status} {idx+1}. **{statement}** — Correct: *{correct_answer}*, Your answer: *{user_ans or 'Not answered'}*")
 
-        # Check answers button only if pool is empty
-        if len(st.session_state.pool) == 0:
-            if st.button("✅ Check My Answers"):
-                user_myth_set = set(st.session_state.myth)
-                user_truth_set = set(st.session_state.truth)
-
-                correct_myth_set = set(myths)
-                correct_truth_set = set(truths)
-
-                correct_count = sum([s in correct_myth_set for s in user_myth_set]) + \
-                                sum([s in correct_truth_set for s in user_truth_set])
-
-                st.success(f"🎯 You got {correct_count}/12 correct!")
-
-                with st.expander("📖 Show Correct Answers"):
-                    st.markdown("**Myths:**")
-                    for m in myths:
-                        st.markdown(f"- ❌ {m}")
-                    st.markdown("**Truths:**")
-                    for t in truths:
-                        st.markdown(f"- ✅ {t}")
+    else:
+        st.session_state.quiz_started = True
+        st.session_state.questions = list(all_statements.items())
+        random.shuffle(st.session_state.questions)
+        st.session_state.answers = {}
+        st.rerun()
 
     if st.button("⬅️ Back to Home"):
         st.session_state.page = "home"
-        # Clear quiz state to reset
         st.session_state.quiz_started = False
-        st.session_state.myth = []
-        st.session_state.truth = []
-        st.session_state.pool = []
-        st.experimental_rerun()
+        st.session_state.questions = []
+        st.session_state.answers = {}
+        st.rerun()
 
+# -------------------------------
+# Main App Router
+# -------------------------------
 def main():
-    if "page" not in st.session_state:
-        st.session_state.page = "home"
-
     if st.session_state.page == "home":
         home()
     elif st.session_state.page == "quiz":
