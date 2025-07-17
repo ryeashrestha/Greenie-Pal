@@ -6,7 +6,7 @@ from streamlit_sortables import sort_items
 # -------------------------------
 # Configure Gemini API
 # -------------------------------
-GOOGLE_API_KEY = "AIzaSyAHDq5HDywhmLY-qvoezAAbs4rKxAMbb7U"  # Your API key
+GOOGLE_API_KEY = ""  # Your API key
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
